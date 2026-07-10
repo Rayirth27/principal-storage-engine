@@ -76,25 +76,33 @@ class StorageEngine:
             # Step 3: Write to a secure NamedTemporaryFile inside the SAME directory
             # Using delete=False allows us to manually rename/replace the file after closing.
             # Writing to the same directory ensures they reside on the same physical filesystem partition.
+            # Ghost File Pattern
             with tempfile.NamedTemporaryFile(
                 dir=dir_name, mode="w", delete=False, suffix=".tmp", encoding="utf-8"
             ) as f:
                 temp_filepath = f.name
+                json.dump(snapshot_data, f, ensure_ascii=False, indent=2) # Serialize clean snapshot to the temporary file
+                f.flush() # Force Python's runtime to push its internal application buffer to the OS kernel pages
 
-                # Serialize clean snapshot to the temporary file
-                json.dump(snapshot_data, f, ensure_ascii=False, indent=2)
-
-                # Force Python's runtime to push its internal application buffer to the OS kernel pages
-                f.flush()
-
-                # Low-level fsync system call: extracts raw file descriptor (fileno)
-                # and forces the OS to block until the disk controller physically writes to the hardware blocks
+                # Low-level fsync system call: extracts raw file descriptor (fileno) and forces the OS to block until 
+                # the disk controller physically writes to the hardware blocks
+                # Hardware-Level Disk Flush
                 os.fsync(f.fileno())
 
-            # Step 4: Perform Atomic Rename/Replace
             # Because the ghost file is fully flushed and on the same partition,
             # this system call swaps the directory pointers atomically.
+            # POSIX Automic Swap
             os.replace(temp_filepath, filepath_abs)
+            
+            # Principal Edge Case: Parent Directory Metadata Sync
+            # POSIX systems require a folder flush; Windows handles thiss natively via its journaling system.
+
+            if os.name != "nt": #If NOT Windows (Linux/macOS)
+                dir_fd = os.open(dir_name, os.O_RDONLY)
+                try:
+                    os.fsync(dir_fd)
+                finally:
+                    os.close(dir_fd)
             print(
                 f"\n[DURABILITY] Successfully serialized, hard-flushed, and atomically swapped snapshot to '{filepath}'"
             )
@@ -102,11 +110,7 @@ class StorageEngine:
         except Exception as e:
             # Fallback Cleanup: If anything fails mid-process, delete the dirty temp file to prevent leakages
             if temp_filepath and os.path.exists(temp_filepath):
-                try:
-                    os.remove(temp_filepath)
-                except OSError:
-                    pass
-            print(f"[-] Database serialization failed: {e}")
+                os.remove(temp_filepath)
             raise e
 
     def load_from_disk(self, filepath: str) -> None:
