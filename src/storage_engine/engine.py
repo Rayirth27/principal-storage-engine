@@ -88,8 +88,8 @@ class StorageEngine:
                 # Serialize clean snapshot to the temp file
 
                 json.dump(snapshot_data, f, ensure_ascii=False, indent=2)
-                f.flush() # Force Python's runtime to push its internal
-                            #application buffer to the OS kernel pages
+                f.flush()  # Force Python's runtime to push its internal
+                # application buffer to the OS kernel pages
 
                 # Low-level fsync system call: extracts raw file descriptor (fileno)
                 # and forces the OS to block until
@@ -100,15 +100,17 @@ class StorageEngine:
             # Because the ghost file is fully flushed and on the same partition,
             # this system call swaps the directory pointers atomically.
             # POSIX Automic Swap
-            os.replace(temp_filepath, filepath_abs) #Windows does this hard-flushing background work
+            os.replace(
+                temp_filepath, filepath_abs
+            )  # Windows does this hard-flushing background work
             # automatically, we don't need extra code for Windows.
 
             # Principal Edge Case: Parent Directory Metadata Sync
             # POSIX systems require a folder flush;
             # Windows handles this natively via its journaling system.
 
-            if os.name != "nt": #If NOT Windows (Linux/macOS) - To satisfy other OS,
-                #so that data corruption is impossible.
+            if os.name != "nt":  # If NOT Windows (Linux/macOS) - To satisfy other OS,
+                # so that data corruption is impossible.
                 dir_fd = os.open(dir_name, os.O_RDONLY)
                 try:
                     os.fsync(dir_fd)
@@ -120,8 +122,8 @@ class StorageEngine:
             )
 
         except Exception as e:
-            if temp_filepath and os.path.exists(temp_filepath): # Fallback Cleanup
-                os.remove(temp_filepath) # Delete the dirty temp file to prevent leakage
+            if temp_filepath and os.path.exists(temp_filepath):  # Fallback Cleanup
+                os.remove(temp_filepath)  # Delete the dirty temp file to prevent leakage
             raise e
 
     def load_from_disk(self, filepath: str) -> None:
@@ -132,16 +134,18 @@ class StorageEngine:
 
         filepath_abs = os.path.abspath(filepath)
 
-        #Handle fresh boot case: If no snapshot exists, initialize with clean state
+        # Handle fresh boot case: If no snapshot exists, initialize with clean state
 
         if not os.path.exists(filepath_abs):
-            print(f"[BOOTSTRAP] No historical snapshot found at '{filepath_abs}'."
-                  f"Starting with a fresh, empty memory state.")
+            print(
+                f"[BOOTSTRAP] No historical snapshot found at '{filepath_abs}'."
+                f"Starting with a fresh, empty memory state."
+            )
             self.store = {}
             return
 
         try:
-            with open(filepath_abs, "r", encoding='utf-8') as f:
+            with open(filepath_abs, "r", encoding="utf-8") as f:
                 raw_snapshot = json.load(f)
 
             current_time = time.time()
@@ -149,11 +153,11 @@ class StorageEngine:
             expired_count = 0
             temp_store = {}
 
-            #Populate memory and run a post-offline expiry eviciton sweep
+            # Populate memory and run a post-offline expiry eviciton sweep
             for key, data in raw_snapshot.items():
                 expiry = data.get("exp")
 
-                #Check if the key expired while the database server was turned off
+                # Check if the key expired while the database server was turned off
                 if expiry is None or expiry > current_time:
                     temp_store[key] = data
                     hydrated_count += 1
@@ -166,12 +170,6 @@ class StorageEngine:
                 f"into RAM. Evicted {expired_count} stale keys during recovery."
             )
         except (json.JSONDecodeError, KeyError, OSError) as e:
-            print(
-                f"[CRITICAL BOOT ERROR] Snapshot file at '{filepath_abs}' "
-                f"is corrupted: {e}"
-                )
-            print(
-                "[CRITICAL] Aborting server initialization to prevent "
-                "state contamination."
-                )
+            print(f"[CRITICAL BOOT ERROR] Snapshot file at '{filepath_abs}' is corrupted: {e}")
+            print("[CRITICAL] Aborting server initialization to prevent state contamination.")
             raise e
