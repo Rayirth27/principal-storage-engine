@@ -4,7 +4,7 @@ A lightweight, multi-threaded, TCP-based key-value store built in Python. Design
 
 ---
 
-## 🚀 Key Features
+##  Key Features
 
 *   **Multi-Threaded Architecture:** Utilizes `ThreadPoolExecutor` to handle concurrent client connections, preventing blocking and ensuring system responsiveness.
 *   **Persistent Storage:** Implements JSON-based snapshotting to ensure data integrity across server restarts.
@@ -26,7 +26,7 @@ This project follows a 5-layer separation of concerns:
 
 ---
 
-## 🛠️ Getting Started
+##  Getting Started
 
 ### Prerequisites
 *   Python 3.x
