@@ -1,6 +1,6 @@
 # Principal Storage Engine
 
-A lightweight, multi-threaded, TCP-based key-value store built in Python. Designed as a learning project to explore the principles of database internals, concurrency, and robust network programming.
+A production-quality, multi-threaded, TCP-based key-value store built in Python from raw sockets with no frameworks. Implements atomic crash-safe persistence, bounded concurrency under 50 concurrent clients, TTL eviction, and Pub/Sub all exploring the same internals Redis is built on.
 
 ---
 
