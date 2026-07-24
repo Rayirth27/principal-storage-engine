@@ -1,5 +1,7 @@
 # Principal Storage Engine
 
+[![CI](https://github.com/Rayirth27/log-parser-security/actions/workflows/ci.yml/badge.svg)](https://github.com/Rayirth27/log-parser-security/actions/workflows/ci.yml)
+
 A production-quality, multi-threaded, TCP-based key-value store built in Python from raw sockets with no frameworks. Implements atomic crash-safe persistence, bounded concurrency under 50 concurrent clients, TTL eviction, and Pub/Sub all exploring the same internals Redis is built on.
 
 ---
